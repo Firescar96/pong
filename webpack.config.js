@@ -2,7 +2,8 @@ var ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 module.exports = {
   entry: {
-    main:  './client/js/main.js',
+    main:    './client/js/main.js',
+    adapter: './node_modules/webrtc-adapter/src/js/adapter_core.js',
   },
   output: {
     path:     './public/',

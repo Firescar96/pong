@@ -1,9 +1,12 @@
-function Game (canvas) {
+import PeerConnection from './PeerConnection.js'
+
+function Game (_gameID, _canvas) {
   var self = this
 
-  this.context = canvas.getContext('2d')
-  this.width = canvas.width
-  this.height = canvas.height
+  this.context = _canvas.getContext('2d')
+  this.width = _canvas.width
+  this.height = _canvas.height
+  this.pc = new PeerConnection(_gameID)
 
   // Keep track of key states
   // Eg.:
@@ -11,7 +14,7 @@ function Game (canvas) {
   //   game.keyPressed.up === false // when UP key is released)
   this.keyPressed = {}
 
-  $(canvas).on('keydown keyup', function (e) {
+  $(_canvas).on('keydown keyup', function (e) {
     // Convert key code to key name
     var keyName = Game.keys[e.which]
 

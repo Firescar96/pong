@@ -50,10 +50,10 @@ Ball.prototype.update = function () {
 
   // Detects if and which paddle we hit
   var hitter
-  if(this.intersect(this.game.player)) {
-    hitter = this.game.player
-  } else if(this.intersect(this.game.bot)) {
-    hitter = this.game.bot
+  if(this.intersect(this.game.player1)) {
+    hitter = this.game.player1
+  } else if(this.intersect(this.game.player2)) {
+    hitter = this.game.player2
   }
 
   // Hits a paddle.
@@ -75,13 +75,13 @@ Ball.prototype.update = function () {
 
   // Off screen on left. Bot wins.
   if(this.x < -this.width) {
-    this.game.bot.score += 1
+    this.game.player2.score += 1
     this.reset()
   }
 
   // Off screen on right. Player wins.
   if(this.x > this.game.width) {
-    this.game.player.score += 1
+    this.game.player1.score += 1
     this.reset()
   }
 }
