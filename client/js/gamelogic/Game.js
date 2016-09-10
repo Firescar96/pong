@@ -1,30 +1,132 @@
 import PeerConnection from './PeerConnection.js'
 
-function Game (_gameID, _canvas) {
-  var self = this
+class Game {
+  constructor (_gameID, _canvas) {
+    var self = this
 
-  this.context = _canvas.getContext('2d')
-  this.width = _canvas.width
-  this.height = _canvas.height
-  this.pc = new PeerConnection(_gameID)
+    this.context = _canvas.getContext('2d')
+    this.width = _canvas.width
+    this.height = _canvas.height
+    this.pc = new PeerConnection(_gameID)
 
-  // Keep track of key states
-  // Eg.:
-  //   game.keyPressed.up === true  // while UP key is pressed)
-  //   game.keyPressed.up === false // when UP key is released)
-  this.keyPressed = {}
+    // Keep track of key states
+    // Eg.:
+    //   game.keyPressed.up === true  // while UP key is pressed)
+    //   game.keyPressed.up === false // when UP key is released)
+    this.keyPressed = {}
 
-  $(_canvas).on('keydown keyup', function (e) {
-    // Convert key code to key name
-    var keyName = Game.keys[e.which]
+    $(_canvas).on('keydown keyup', function (e) {
+      // Convert key code to key name
+      var keyName = Game.keys[e.which]
 
-    if(keyName) {
-      // eg.: `self.keyPressed.up = true` on keydown
-      // Will be set to `false` on keyup
-      self.keyPressed[keyName] = e.type === 'keydown'
-      e.preventDefault()
+      if(keyName) {
+        // eg.: `self.keyPressed.up = true` on keydown
+        // Will be set to `false` on keyup
+        self.keyPressed[keyName] = e.type === 'keydown'
+        e.preventDefault()
+      }
+    })
+  }
+
+
+  update () {
+    this.entities.forEach(function (entity) {
+      if(entity.update) entity.update()
+    })
+  }
+
+  draw () {
+    var self = this
+
+    this.entities.forEach(function (entity) {
+      if(entity.draw) entity.draw(self.context)
+    })
+  }
+
+
+  // Instead of relying on a timer, we use a special browser function called
+  // `requestAnimationFrame(callback)`. It calls the `callback` at interval
+  // synced with the display refresh rate.
+  // More info at:
+  // https:// developer.mozilla.org/en/docs/Web/API/window.requestAnimationFrame
+  _onFrame (callback) {
+    if(window.requestAnimationFrame) {
+      requestAnimationFrame(function () {
+        callback()
+        // requestAnimationFrame only calls our callback once, we need to
+        // schedule the next call ourself.
+        _onFrame(callback)
+      })
+    } else {
+      // requestAnimationFrame is not supported by all browsers. We fall back to
+      // a timer.
+      var fps = 60
+      setInterval(callback, 1000 / fps)
     }
-  })
+  }
+
+  // Here is a real game loop. Similar to the ones you'll find in most games.
+  start () {
+    var self = this
+
+    this.lastUpdateTime = new Date().getTime()
+
+    // The loop
+    _onFrame(function () {
+      // A turn in the loop is called a step.
+      // Two possible modes:
+      self.fixedTimeStep()
+      // or
+      // self.variableTimeStep()
+    })
+  }
+
+
+  // With fixed time steps, each update is done at a fixed interval.
+  fixedTimeStep () {
+    var fps = 60
+    var interval = 1000 / fps
+    var updated = false
+
+    // While we're not up to date ...
+    while(this.lastUpdateTime < new Date().getTime()) {
+      this.update()
+      updated = true
+      // We jump at fixed intervals until we catch up to the current time.
+      this.lastUpdateTime += interval
+    }
+
+    // No need to draw if nothing was updated
+    if(updated) this.draw()
+    updated = false
+  }
+
+  // With a variable time steps, update are done whenever we need to draw.
+  // However we do partial updates. Only updating a percentage of what a fixed
+  // time step would normally do.
+  variableTimeStep () {
+    var currentTime = new Date().getTime()
+    var fps = 60
+    var interval = 1000 / fps
+    var timeDelta = currentTime - this.lastUpdateTime
+    var percentageOfInterval = timeDelta / interval
+
+    // NOTE: This requires changing the update function
+    // to support partial updating.
+    //
+    // Eg.:
+    //
+    //   Entity.prototype.update = function(percentage) {
+    //     this.x += this.xVelocity * percentage
+    //     this.y += this.yVelocity * percentage
+    //   }
+    //
+    // Also don't forget to pass that argument in Game.prototype.update.
+    this.update(percentageOfInterval)
+    this.draw()
+
+    this.lastUpdateTime = new Date().getTime()
+  }
 }
 
 // Some key code to key name mappings
@@ -34,105 +136,6 @@ Game.keys = {
   38: 'up',
   39: 'right',
   40: 'down',
-}
-
-Game.prototype.update = function () {
-  this.entities.forEach(function (entity) {
-    if(entity.update) entity.update()
-  })
-}
-
-Game.prototype.draw = function () {
-  var self = this
-
-  this.entities.forEach(function (entity) {
-    if(entity.draw) entity.draw(self.context)
-  })
-}
-
-
-// Instead of relying on a timer, we use a special browser function called
-// `requestAnimationFrame(callback)`. It calls the `callback` at interval
-// synced with the display refresh rate.
-// More info at:
-// https:// developer.mozilla.org/en/docs/Web/API/window.requestAnimationFrame
-var onFrame = function (callback) {
-  if(window.requestAnimationFrame) {
-    requestAnimationFrame(function () {
-      callback()
-      // requestAnimationFrame only calls our callback once, we need to
-      // schedule the next call ourself.
-      onFrame(callback)
-    })
-  } else {
-    // requestAnimationFrame is not supported by all browsers. We fall back to
-    // a timer.
-    var fps = 60
-    setInterval(callback, 1000 / fps)
-  }
-}
-
-// Here is a real game loop. Similar to the ones you'll find in most games.
-Game.prototype.start = function () {
-  var self = this
-
-  this.lastUpdateTime = new Date().getTime()
-
-  // The loop
-  onFrame(function () {
-    // A turn in the loop is called a step.
-    // Two possible modes:
-    self.fixedTimeStep()
-    // or
-    // self.variableTimeStep()
-  })
-}
-
-
-// With fixed time steps, each update is done at a fixed interval.
-Game.prototype.fixedTimeStep = function () {
-  var fps = 60
-  var interval = 1000 / fps
-  var updated = false
-
-  // While we're not up to date ...
-  while(this.lastUpdateTime < new Date().getTime()) {
-    this.update()
-    updated = true
-    // We jump at fixed intervals until we catch up to the current time.
-    this.lastUpdateTime += interval
-  }
-
-  // No need to draw if nothing was updated
-  if(updated) this.draw()
-  updated = false
-}
-
-// With a variable time steps, update are done whenever we need to draw.
-// However we do partial updates. Only updating a percentage of what a fixed
-// time step would normally do.
-Game.prototype.variableTimeStep = function () {
-  var currentTime = new Date().getTime()
-  var fps = 60
-  var interval = 1000 / fps
-  var timeDelta = currentTime - this.lastUpdateTime
-  var percentageOfInterval = timeDelta / interval
-
-  // NOTE: This requires changing the update function
-  // to support partial updating.
-  //
-  // Eg.:
-  //
-  //   Entity.prototype.update = function(percentage) {
-  //     this.x += this.xVelocity * percentage
-  //     this.y += this.yVelocity * percentage
-  //   }
-  //
-  // Also don't forget to pass that argument in Game.prototype.update.
-  this.update(percentageOfInterval)
-  this.draw()
-
-  this.lastUpdateTime = new Date().getTime()
 }
 
 export default Game

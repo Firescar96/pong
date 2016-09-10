@@ -19912,7 +19912,7 @@
 	          { className: (0, _classnames2.default)({ hidden: !this.state.waiting }) },
 	          'Waiting for a challenger...'
 	        ),
-	        _react2.default.createElement('canvas', { tabIndex: '1', width: '768', height: '576' })
+	        _react2.default.createElement('canvas', { tabIndex: '1', width: '768', height: '512' })
 	      )
 	    );
 	  },

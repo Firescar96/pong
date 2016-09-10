@@ -28,7 +28,7 @@ var Pong = React.createClass({
 
         <main>
           <h2 className={classnames({hidden: !this.state.waiting})}>Waiting for a challenger...</h2>
-          <canvas tabIndex="1" width="768" height="576"></canvas>
+          <canvas tabIndex="1" width="768" height="512"></canvas>
         </main>
 
       </div>
