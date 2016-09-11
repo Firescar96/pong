@@ -1,4 +1,8 @@
+import Ball from './Ball.js'
+import Player from './Player.js'
+import Bot from './Bot.js'
 import PeerConnection from './PeerConnection.js'
+import Background from './Background.js'
 
 class Game {
   constructor (_gameID, _canvas) {
@@ -7,7 +11,7 @@ class Game {
     this.context = _canvas.getContext('2d')
     this.width = _canvas.width
     this.height = _canvas.height
-    this.pc = new PeerConnection(_gameID)
+    this.pc = new PeerConnection(_gameID, this.onPCReady.bind(this), this.onPCMessage.bind(this))
 
     // Keep track of key states
     // Eg.:
@@ -26,13 +30,32 @@ class Game {
         e.preventDefault()
       }
     })
+
+    // Load the game entities
+    this.background = new Background(this)
+    this.ball = new Ball(this, true)
+    this.player1 = new Player(this, 1, true)
+    this.player2 = new Bot(this)
+    this.entities = [
+      this.background,
+      this.ball,
+      this.player1,
+      this.player2,
+    ]
   }
 
-
   update () {
-    this.entities.forEach(function (entity) {
+    this.entities.forEach((entity) => {
       if(entity.update) entity.update()
     })
+
+    let state = {}
+    this.entities
+    .filter((entity) => entity.getState !== undefined)
+    .forEach((entity) => {
+      state[entity.name] = entity.getState()
+    })
+    if(this.pc.ready) this.pc.sendMessageToPeer(JSON.stringify(state))
   }
 
   draw () {
@@ -43,6 +66,41 @@ class Game {
     })
   }
 
+  onPCReady () {
+    switch (this.pc.playerID) {
+      case 1:
+        this.player1 = new Player(this, 1, true)
+        this.player2 = new Player(this, 2, false)
+        this.ball = new Ball(this, true)
+        break
+      case 2:
+        this.player1 = new Player(this, 1, false)
+        this.player2 = new Player(this, 2, true)
+        this.ball = new Ball(this, false)
+        break
+      default:
+    }
+    this.entities = [
+      this.background,
+      this.ball,
+      this.player1,
+      this.player2,
+    ]
+  }
+
+  onPCMessage (message) {
+    let state = JSON.parse(message.data)
+    switch (this.pc.playerID) {
+      case 1:
+        this.player2.setState(state.player2)
+        break
+      case 2:
+        this.player1.setState(state.player1)
+        this.ball.setState(state.ball)
+        break
+      default:
+    }
+  }
 
   // Instead of relying on a timer, we use a special browser function called
   // `requestAnimationFrame(callback)`. It calls the `callback` at interval
@@ -51,11 +109,11 @@ class Game {
   // https:// developer.mozilla.org/en/docs/Web/API/window.requestAnimationFrame
   _onFrame (callback) {
     if(window.requestAnimationFrame) {
-      requestAnimationFrame(function () {
+      requestAnimationFrame(() => {
         callback()
         // requestAnimationFrame only calls our callback once, we need to
         // schedule the next call ourself.
-        _onFrame(callback)
+        this._onFrame(callback)
       })
     } else {
       // requestAnimationFrame is not supported by all browsers. We fall back to
@@ -72,7 +130,7 @@ class Game {
     this.lastUpdateTime = new Date().getTime()
 
     // The loop
-    _onFrame(function () {
+    this._onFrame(function () {
       // A turn in the loop is called a step.
       // Two possible modes:
       self.fixedTimeStep()

@@ -1,8 +1,9 @@
 // Significant code reuse from https://github.com/shanet/WebRTC-Example/blob/master/client/webrtc.js
 
 class PeerConnection {
-  constructor (_gameID) {
+  constructor (_gameID, _onReadyCallback, _onRemoteMessageCallback) {
     this.uuid = this.generateUUID()
+    this.ready = false
     this.serverConnection = new WebSocket('wss://' + window.location.hostname + ':3443')
     this.serverConnection.onopen = () => {
       this.serverConnection.send(JSON.stringify({
@@ -19,13 +20,15 @@ class PeerConnection {
       ],
     }, null)
     this.peerChannel = this.peerConnection.createDataChannel('sendDataChannel', {reliable: true})
-    window.peerConnection = this.peerConnection
     window.peerChannel = this.peerChannel
     this.peerConnection.onicecandidate = this.gotIceCandidate.bind(this)
     this.peerConnection.ondatachannel = this.gotRemoteDataChannel.bind(this)
 
     this.serverConnection.onmessage = this.gotMessageFromServer.bind(this)
     this.gameID = _gameID
+    this.playerID = 1 // user starts as player 1 and moves to 2 if they accept a connection offer
+    this.onReadyCallback = _onReadyCallback
+    this.onRemoteMessageCallback = _onRemoteMessageCallback
   }
 
   createOffer () {
@@ -33,9 +36,12 @@ class PeerConnection {
     .then(this.createdDescription.bind(this)).catch(this.errorHandler)
   }
 
+  sendMessageToPeer (_message) {
+    this.peerChannel.send(_message)
+  }
+
   gotMessageFromServer (message) {
     var signal = JSON.parse(message.data)
-    console.log(signal)
     switch (signal.flag) {
       case 'init':
         // Double check this message is for us
@@ -48,7 +54,7 @@ class PeerConnection {
         this.peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp))
         .then(() => {
           // Only create answers in response to offers
-          if(signal.sdp.type == 'offer') {
+          if(signal.sdp.type.localeCompare('offer') === 0) {
             this.peerConnection.createAnswer().then(this.createdDescription.bind(this))
             .catch(this.errorHandler)
           }
@@ -68,9 +74,9 @@ class PeerConnection {
   gotIceCandidate (event) {
     if(event.candidate !== null) {
       this.serverConnection.send(JSON.stringify({
-        'flag': 'ice',
-        'uuid': this.uuid,
-        'ice':  event.candidate,
+        'flag':   'ice',
+        'uuid':   this.uuid,
+        'ice':    event.candidate,
         'gameID': this.gameID,
       }))
     }
@@ -78,6 +84,8 @@ class PeerConnection {
 
   createdDescription (description) {
     console.log('got description')
+    if(description.type.localeCompare('answer') === 0) this.playerID = 1
+    if(description.type.localeCompare('offer') === 0) this.playerID = 2
 
     this.peerConnection.setLocalDescription(description).then(() => {
       this.serverConnection.send(JSON.stringify({
@@ -91,9 +99,14 @@ class PeerConnection {
 
   gotRemoteDataChannel (event) {
     console.log('got a remote data channel')
-    event.channel.onmessage = (message) => {
-      console.log(message)
-    }
+    this.serverConnection.send(JSON.stringify({
+      'flag':   'reset',
+      'uuid':   this.uuid,
+      'gameID': this.gameID,
+    }))
+    this.ready = true
+    event.channel.onmessage = this.onRemoteMessageCallback
+    this.onReadyCallback()
   }
 
   errorHandler (error) {

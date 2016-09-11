@@ -1,12 +1,14 @@
 import Entity from './Entity'
 
 class Ball extends Entity {
-  constructor (_game) {
+  constructor (_game, _controllable) {
     super()
 
     this.width = 20
     this.height = 20
+    this.name = 'ball'
     this.game = _game
+    this.controllable = _controllable
 
     this.reset()
 
@@ -21,6 +23,7 @@ class Ball extends Entity {
 
   // Reset the ball's position
   reset () {
+    if(!this.controllable) return
     this.x = this.game.width / 2 - this.width / 2
     this.y = this.game.height / 2 - this.height / 2
 
@@ -44,7 +47,7 @@ class Ball extends Entity {
   }
 
   update () {
-    Entity.prototype.update.apply(this, arguments)
+    super.update(arguments)
 
     // Detects if and which paddle we hit
     var hitter

@@ -19862,22 +19862,6 @@
 
 	var _Game2 = _interopRequireDefault(_Game);
 
-	var _Ball = __webpack_require__(176);
-
-	var _Ball2 = _interopRequireDefault(_Ball);
-
-	var _Player = __webpack_require__(178);
-
-	var _Player2 = _interopRequireDefault(_Player);
-
-	var _Bot = __webpack_require__(180);
-
-	var _Bot2 = _interopRequireDefault(_Bot);
-
-	var _PeerConnection = __webpack_require__(175);
-
-	var _PeerConnection2 = _interopRequireDefault(_PeerConnection);
-
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	__webpack_require__(181);
@@ -19923,21 +19907,6 @@
 	    // Initialize and start the game
 
 	    var game = new _Game2.default(this.props.params.gameID, $('canvas')[0]);
-
-	    function Background() {}
-	    Background.prototype.draw = function (context) {
-	      context.fillStyle = '#000';
-	      context.fillRect(0, 0, game.width, game.height);
-
-	      // Print scores
-	      context.fillStyle = '#fff';
-	      context.font = '40px monospace';
-	      context.fillText(game.player1.score, game.width * 3 / 8, 50);
-	      context.fillText(game.player2.score, game.width * 5 / 8, 50);
-	    };
-
-	    // Load the game entities
-	    game.entities = [new Background(), game.ball = new _Ball2.default(game), game.player1 = new _Player2.default(game), game.player2 = new _Bot2.default(game)];
 
 	    game.start();
 	    $('canvas')[0].focus();
@@ -20010,143 +19979,237 @@
 	  value: true
 	});
 
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _Ball = __webpack_require__(176);
+
+	var _Ball2 = _interopRequireDefault(_Ball);
+
+	var _Player = __webpack_require__(178);
+
+	var _Player2 = _interopRequireDefault(_Player);
+
+	var _Bot = __webpack_require__(179);
+
+	var _Bot2 = _interopRequireDefault(_Bot);
+
 	var _PeerConnection = __webpack_require__(175);
 
 	var _PeerConnection2 = _interopRequireDefault(_PeerConnection);
 
+	var _Background = __webpack_require__(247);
+
+	var _Background2 = _interopRequireDefault(_Background);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function Game(_gameID, _canvas) {
-	  var self = this;
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  this.context = _canvas.getContext('2d');
-	  this.width = _canvas.width;
-	  this.height = _canvas.height;
-	  this.pc = new _PeerConnection2.default(_gameID);
+	var Game = function () {
+	  function Game(_gameID, _canvas) {
+	    _classCallCheck(this, Game);
 
-	  // Keep track of key states
-	  // Eg.:
-	  //   game.keyPressed.up === true  // while UP key is pressed)
-	  //   game.keyPressed.up === false // when UP key is released)
-	  this.keyPressed = {};
+	    var self = this;
 
-	  $(_canvas).on('keydown keyup', function (e) {
-	    // Convert key code to key name
-	    var keyName = Game.keys[e.which];
+	    this.context = _canvas.getContext('2d');
+	    this.width = _canvas.width;
+	    this.height = _canvas.height;
+	    this.pc = new _PeerConnection2.default(_gameID, this.onPCReady.bind(this), this.onPCMessage.bind(this));
 
-	    if (keyName) {
-	      // eg.: `self.keyPressed.up = true` on keydown
-	      // Will be set to `false` on keyup
-	      self.keyPressed[keyName] = e.type === 'keydown';
-	      e.preventDefault();
+	    // Keep track of key states
+	    // Eg.:
+	    //   game.keyPressed.up === true  // while UP key is pressed)
+	    //   game.keyPressed.up === false // when UP key is released)
+	    this.keyPressed = {};
+
+	    $(_canvas).on('keydown keyup', function (e) {
+	      // Convert key code to key name
+	      var keyName = Game.keys[e.which];
+
+	      if (keyName) {
+	        // eg.: `self.keyPressed.up = true` on keydown
+	        // Will be set to `false` on keyup
+	        self.keyPressed[keyName] = e.type === 'keydown';
+	        e.preventDefault();
+	      }
+	    });
+
+	    // Load the game entities
+	    this.background = new _Background2.default(this);
+	    this.ball = new _Ball2.default(this, true);
+	    this.player1 = new _Player2.default(this, 1, true);
+	    this.player2 = new _Bot2.default(this);
+	    this.entities = [this.background, this.ball, this.player1, this.player2];
+	  }
+
+	  _createClass(Game, [{
+	    key: 'update',
+	    value: function update() {
+	      this.entities.forEach(function (entity) {
+	        if (entity.update) entity.update();
+	      });
+
+	      var state = {};
+	      this.entities.filter(function (entity) {
+	        return entity.getState !== undefined;
+	      }).forEach(function (entity) {
+	        state[entity.name] = entity.getState();
+	      });
+	      if (this.pc.ready) this.pc.sendMessageToPeer(JSON.stringify(state));
 	    }
-	  });
-	}
+	  }, {
+	    key: 'draw',
+	    value: function draw() {
+	      var self = this;
+
+	      this.entities.forEach(function (entity) {
+	        if (entity.draw) entity.draw(self.context);
+	      });
+	    }
+	  }, {
+	    key: 'onPCReady',
+	    value: function onPCReady() {
+	      switch (this.pc.playerID) {
+	        case 1:
+	          this.player1 = new _Player2.default(this, 1, true);
+	          this.player2 = new _Player2.default(this, 2, false);
+	          this.ball = new _Ball2.default(this, true);
+	          break;
+	        case 2:
+	          this.player1 = new _Player2.default(this, 1, false);
+	          this.player2 = new _Player2.default(this, 2, true);
+	          this.ball = new _Ball2.default(this, false);
+	          break;
+	        default:
+	      }
+	      this.entities = [this.background, this.ball, this.player1, this.player2];
+	    }
+	  }, {
+	    key: 'onPCMessage',
+	    value: function onPCMessage(message) {
+	      var state = JSON.parse(message.data);
+	      switch (this.pc.playerID) {
+	        case 1:
+	          this.player2.setState(state.player2);
+	          break;
+	        case 2:
+	          this.player1.setState(state.player1);
+	          this.ball.setState(state.ball);
+	          break;
+	        default:
+	      }
+	    }
+
+	    // Instead of relying on a timer, we use a special browser function called
+	    // `requestAnimationFrame(callback)`. It calls the `callback` at interval
+	    // synced with the display refresh rate.
+	    // More info at:
+	    // https:// developer.mozilla.org/en/docs/Web/API/window.requestAnimationFrame
+
+	  }, {
+	    key: '_onFrame',
+	    value: function _onFrame(callback) {
+	      var _this = this;
+
+	      if (window.requestAnimationFrame) {
+	        requestAnimationFrame(function () {
+	          callback();
+	          // requestAnimationFrame only calls our callback once, we need to
+	          // schedule the next call ourself.
+	          _this._onFrame(callback);
+	        });
+	      } else {
+	        // requestAnimationFrame is not supported by all browsers. We fall back to
+	        // a timer.
+	        var fps = 60;
+	        setInterval(callback, 1000 / fps);
+	      }
+	    }
+
+	    // Here is a real game loop. Similar to the ones you'll find in most games.
+
+	  }, {
+	    key: 'start',
+	    value: function start() {
+	      var self = this;
+
+	      this.lastUpdateTime = new Date().getTime();
+
+	      // The loop
+	      this._onFrame(function () {
+	        // A turn in the loop is called a step.
+	        // Two possible modes:
+	        self.fixedTimeStep();
+	        // or
+	        // self.variableTimeStep()
+	      });
+	    }
+
+	    // With fixed time steps, each update is done at a fixed interval.
+
+	  }, {
+	    key: 'fixedTimeStep',
+	    value: function fixedTimeStep() {
+	      var fps = 60;
+	      var interval = 1000 / fps;
+	      var updated = false;
+
+	      // While we're not up to date ...
+	      while (this.lastUpdateTime < new Date().getTime()) {
+	        this.update();
+	        updated = true;
+	        // We jump at fixed intervals until we catch up to the current time.
+	        this.lastUpdateTime += interval;
+	      }
+
+	      // No need to draw if nothing was updated
+	      if (updated) this.draw();
+	      updated = false;
+	    }
+
+	    // With a variable time steps, update are done whenever we need to draw.
+	    // However we do partial updates. Only updating a percentage of what a fixed
+	    // time step would normally do.
+
+	  }, {
+	    key: 'variableTimeStep',
+	    value: function variableTimeStep() {
+	      var currentTime = new Date().getTime();
+	      var fps = 60;
+	      var interval = 1000 / fps;
+	      var timeDelta = currentTime - this.lastUpdateTime;
+	      var percentageOfInterval = timeDelta / interval;
+
+	      // NOTE: This requires changing the update function
+	      // to support partial updating.
+	      //
+	      // Eg.:
+	      //
+	      //   Entity.prototype.update = function(percentage) {
+	      //     this.x += this.xVelocity * percentage
+	      //     this.y += this.yVelocity * percentage
+	      //   }
+	      //
+	      // Also don't forget to pass that argument in Game.prototype.update.
+	      this.update(percentageOfInterval);
+	      this.draw();
+
+	      this.lastUpdateTime = new Date().getTime();
+	    }
+	  }]);
+
+	  return Game;
+	}();
 
 	// Some key code to key name mappings
+
+
 	Game.keys = {
 	  32: 'space',
 	  37: 'left',
 	  38: 'up',
 	  39: 'right',
 	  40: 'down'
-	};
-
-	Game.prototype.update = function () {
-	  this.entities.forEach(function (entity) {
-	    if (entity.update) entity.update();
-	  });
-	};
-
-	Game.prototype.draw = function () {
-	  var self = this;
-
-	  this.entities.forEach(function (entity) {
-	    if (entity.draw) entity.draw(self.context);
-	  });
-	};
-
-	// Instead of relying on a timer, we use a special browser function called
-	// `requestAnimationFrame(callback)`. It calls the `callback` at interval
-	// synced with the display refresh rate.
-	// More info at:
-	// https:// developer.mozilla.org/en/docs/Web/API/window.requestAnimationFrame
-	var onFrame = function onFrame(callback) {
-	  if (window.requestAnimationFrame) {
-	    requestAnimationFrame(function () {
-	      callback();
-	      // requestAnimationFrame only calls our callback once, we need to
-	      // schedule the next call ourself.
-	      onFrame(callback);
-	    });
-	  } else {
-	    // requestAnimationFrame is not supported by all browsers. We fall back to
-	    // a timer.
-	    var fps = 60;
-	    setInterval(callback, 1000 / fps);
-	  }
-	};
-
-	// Here is a real game loop. Similar to the ones you'll find in most games.
-	Game.prototype.start = function () {
-	  var self = this;
-
-	  this.lastUpdateTime = new Date().getTime();
-
-	  // The loop
-	  onFrame(function () {
-	    // A turn in the loop is called a step.
-	    // Two possible modes:
-	    self.fixedTimeStep();
-	    // or
-	    // self.variableTimeStep()
-	  });
-	};
-
-	// With fixed time steps, each update is done at a fixed interval.
-	Game.prototype.fixedTimeStep = function () {
-	  var fps = 60;
-	  var interval = 1000 / fps;
-	  var updated = false;
-
-	  // While we're not up to date ...
-	  while (this.lastUpdateTime < new Date().getTime()) {
-	    this.update();
-	    updated = true;
-	    // We jump at fixed intervals until we catch up to the current time.
-	    this.lastUpdateTime += interval;
-	  }
-
-	  // No need to draw if nothing was updated
-	  if (updated) this.draw();
-	  updated = false;
-	};
-
-	// With a variable time steps, update are done whenever we need to draw.
-	// However we do partial updates. Only updating a percentage of what a fixed
-	// time step would normally do.
-	Game.prototype.variableTimeStep = function () {
-	  var currentTime = new Date().getTime();
-	  var fps = 60;
-	  var interval = 1000 / fps;
-	  var timeDelta = currentTime - this.lastUpdateTime;
-	  var percentageOfInterval = timeDelta / interval;
-
-	  // NOTE: This requires changing the update function
-	  // to support partial updating.
-	  //
-	  // Eg.:
-	  //
-	  //   Entity.prototype.update = function(percentage) {
-	  //     this.x += this.xVelocity * percentage
-	  //     this.y += this.yVelocity * percentage
-	  //   }
-	  //
-	  // Also don't forget to pass that argument in Game.prototype.update.
-	  this.update(percentageOfInterval);
-	  this.draw();
-
-	  this.lastUpdateTime = new Date().getTime();
 	};
 
 	exports.default = Game;
@@ -20168,12 +20231,13 @@
 	// Significant code reuse from https://github.com/shanet/WebRTC-Example/blob/master/client/webrtc.js
 
 	var PeerConnection = function () {
-	  function PeerConnection(_gameID) {
+	  function PeerConnection(_gameID, _onReadyCallback, _onRemoteMessageCallback) {
 	    var _this = this;
 
 	    _classCallCheck(this, PeerConnection);
 
 	    this.uuid = this.generateUUID();
+	    this.ready = false;
 	    this.serverConnection = new WebSocket('wss://' + window.location.hostname + ':3443');
 	    this.serverConnection.onopen = function () {
 	      _this.serverConnection.send(JSON.stringify({
@@ -20187,13 +20251,15 @@
 	      'iceServers': [{ 'urls': 'stun:stun.services.mozilla.com' }, { 'urls': 'stun:stun.l.google.com:19302' }]
 	    }, null);
 	    this.peerChannel = this.peerConnection.createDataChannel('sendDataChannel', { reliable: true });
-	    window.peerConnection = this.peerConnection;
 	    window.peerChannel = this.peerChannel;
 	    this.peerConnection.onicecandidate = this.gotIceCandidate.bind(this);
 	    this.peerConnection.ondatachannel = this.gotRemoteDataChannel.bind(this);
 
 	    this.serverConnection.onmessage = this.gotMessageFromServer.bind(this);
 	    this.gameID = _gameID;
+	    this.playerID = 1; // user starts as player 1 and moves to 2 if they accept a connection offer
+	    this.onReadyCallback = _onReadyCallback;
+	    this.onRemoteMessageCallback = _onRemoteMessageCallback;
 	  }
 
 	  _createClass(PeerConnection, [{
@@ -20202,12 +20268,16 @@
 	      this.peerConnection.createOffer().then(this.createdDescription.bind(this)).catch(this.errorHandler);
 	    }
 	  }, {
+	    key: 'sendMessageToPeer',
+	    value: function sendMessageToPeer(_message) {
+	      this.peerChannel.send(_message);
+	    }
+	  }, {
 	    key: 'gotMessageFromServer',
 	    value: function gotMessageFromServer(message) {
 	      var _this2 = this;
 
 	      var signal = JSON.parse(message.data);
-	      console.log(signal);
 	      switch (signal.flag) {
 	        case 'init':
 	          // Double check this message is for us
@@ -20219,7 +20289,7 @@
 	          if (signal.uuid.localeCompare(this.uuid) === 0) return;
 	          this.peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp)).then(function () {
 	            // Only create answers in response to offers
-	            if (signal.sdp.type == 'offer') {
+	            if (signal.sdp.type.localeCompare('offer') === 0) {
 	              _this2.peerConnection.createAnswer().then(_this2.createdDescription.bind(_this2)).catch(_this2.errorHandler);
 	            }
 	          }).catch(this.errorHandler);
@@ -20251,6 +20321,8 @@
 	      var _this3 = this;
 
 	      console.log('got description');
+	      if (description.type.localeCompare('answer') === 0) this.playerID = 1;
+	      if (description.type.localeCompare('offer') === 0) this.playerID = 2;
 
 	      this.peerConnection.setLocalDescription(description).then(function () {
 	        _this3.serverConnection.send(JSON.stringify({
@@ -20265,9 +20337,14 @@
 	    key: 'gotRemoteDataChannel',
 	    value: function gotRemoteDataChannel(event) {
 	      console.log('got a remote data channel');
-	      event.channel.onmessage = function (message) {
-	        console.log(message);
-	      };
+	      this.serverConnection.send(JSON.stringify({
+	        'flag': 'reset',
+	        'uuid': this.uuid,
+	        'gameID': this.gameID
+	      }));
+	      this.ready = true;
+	      event.channel.onmessage = this.onRemoteMessageCallback;
+	      this.onReadyCallback();
 	    }
 	  }, {
 	    key: 'errorHandler',
@@ -20304,97 +20381,122 @@
 	  value: true
 	});
 
-	var _Entity = __webpack_require__(177);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Entity2 = _interopRequireDefault(_Entity);
+	var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+	var _Entity2 = __webpack_require__(177);
+
+	var _Entity3 = _interopRequireDefault(_Entity2);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function Ball(_game) {
-	  _Entity2.default.call(this);
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  this.width = 20;
-	  this.height = 20;
-	  this.game = _game;
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-	  this.reset();
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	  // Load sound
-	  this.blip = new Audio();
-	  if (this.blip.canPlayType('audio/mpeg')) {
-	    this.blip.src = 'blip.mp3';
-	  } else {
-	    this.blip.src = 'blip.ogg';
-	  }
-	}
+	var Ball = function (_Entity) {
+	  _inherits(Ball, _Entity);
 
-	Ball.prototype = Object.create(_Entity2.default.prototype);
-	Ball.prototype.constructor = Ball;
+	  function Ball(_game, _controllable) {
+	    _classCallCheck(this, Ball);
 
-	// Reset the ball's position
-	Ball.prototype.reset = function () {
-	  this.x = this.game.width / 2 - this.width / 2;
-	  this.y = this.game.height / 2 - this.height / 2;
+	    var _this = _possibleConstructorReturn(this, (Ball.__proto__ || Object.getPrototypeOf(Ball)).call(this));
 
-	  // A simple way to start in a random direction
-	  // var max = 5, min = -5
-	  // this.yVelocity = Math.floor(Math.random() * (max - min + 1) + min)
-	  // this.xVelocity = 5
+	    _this.width = 20;
+	    _this.height = 20;
+	    _this.name = 'ball';
+	    _this.game = _game;
+	    _this.controllable = _controllable;
 
-	  // A better way to launch the ball at a random angle
-	  var minAngle = -30;
-	  var maxAngle = 30;
-	  var angle = Math.floor(Math.random() * (maxAngle - minAngle + 1)) + minAngle;
-	  // Convert angle to x,y coordinates
-	  var radian = Math.PI / 180;
-	  var speed = 7;
-	  this.xVelocity = speed * Math.cos(angle * radian);
-	  this.yVelocity = speed * Math.sin(angle * radian);
+	    _this.reset();
 
-	  // Alternate between right and left
-	  if (Math.random() > 0.5) this.xVelocity *= -1;
-	};
-
-	Ball.prototype.update = function () {
-	  _Entity2.default.prototype.update.apply(this, arguments);
-
-	  // Detects if and which paddle we hit
-	  var hitter;
-	  if (this.intersect(this.game.player1)) {
-	    hitter = this.game.player1;
-	  } else if (this.intersect(this.game.player2)) {
-	    hitter = this.game.player2;
+	    // Load sound
+	    _this.blip = new Audio();
+	    if (_this.blip.canPlayType('audio/mpeg')) {
+	      _this.blip.src = 'blip.mp3';
+	    } else {
+	      _this.blip.src = 'blip.ogg';
+	    }
+	    return _this;
 	  }
 
-	  // Hits a paddle.
-	  if (hitter) {
-	    this.xVelocity *= -1.1; // Rebound and increase speed
-	    this.yVelocity *= 1.1;
+	  // Reset the ball's position
 
-	    // Transfer some of the paddle vertical velocity to the ball
-	    this.yVelocity += hitter.yVelocity / 4;
 
-	    this.blip.play();
-	  }
+	  _createClass(Ball, [{
+	    key: 'reset',
+	    value: function reset() {
+	      if (!this.controllable) return;
+	      this.x = this.game.width / 2 - this.width / 2;
+	      this.y = this.game.height / 2 - this.height / 2;
 
-	  // Rebound if it hits top or bottom
-	  if (this.y < 0 || this.y + this.height > this.game.height) {
-	    this.yVelocity *= -1; // rebound, switch direction
-	    this.blip.play();
-	  }
+	      // A simple way to start in a random direction
+	      // var max = 5, min = -5
+	      // this.yVelocity = Math.floor(Math.random() * (max - min + 1) + min)
+	      // this.xVelocity = 5
 
-	  // Off screen on left. Bot wins.
-	  if (this.x < -this.width) {
-	    this.game.player2.score += 1;
-	    this.reset();
-	  }
+	      // A better way to launch the ball at a random angle
+	      var minAngle = -30;
+	      var maxAngle = 30;
+	      var angle = Math.floor(Math.random() * (maxAngle - minAngle + 1)) + minAngle;
+	      // Convert angle to x,y coordinates
+	      var radian = Math.PI / 180;
+	      var speed = 7;
+	      this.xVelocity = speed * Math.cos(angle * radian);
+	      this.yVelocity = speed * Math.sin(angle * radian);
 
-	  // Off screen on right. Player wins.
-	  if (this.x > this.game.width) {
-	    this.game.player1.score += 1;
-	    this.reset();
-	  }
-	};
+	      // Alternate between right and left
+	      if (Math.random() > 0.5) this.xVelocity *= -1;
+	    }
+	  }, {
+	    key: 'update',
+	    value: function update() {
+	      _get(Ball.prototype.__proto__ || Object.getPrototypeOf(Ball.prototype), 'update', this).call(this, arguments);
+
+	      // Detects if and which paddle we hit
+	      var hitter;
+	      if (this.intersect(this.game.player1)) {
+	        hitter = this.game.player1;
+	      } else if (this.intersect(this.game.player2)) {
+	        hitter = this.game.player2;
+	      }
+
+	      // Hits a paddle.
+	      if (hitter) {
+	        this.xVelocity *= -1.1; // Rebound and increase speed
+	        this.yVelocity *= 1.1;
+
+	        // Transfer some of the paddle vertical velocity to the ball
+	        this.yVelocity += hitter.yVelocity / 4;
+
+	        this.blip.play();
+	      }
+
+	      // Rebound if it hits top or bottom
+	      if (this.y < 0 || this.y + this.height > this.game.height) {
+	        this.yVelocity *= -1; // rebound, switch direction
+	        this.blip.play();
+	      }
+
+	      // Off screen on left. Bot wins.
+	      if (this.x < -this.width) {
+	        this.game.player2.score += 1;
+	        this.reset();
+	      }
+
+	      // Off screen on right. Player wins.
+	      if (this.x > this.game.width) {
+	        this.game.player1.score += 1;
+	        this.reset();
+	      }
+	    }
+	  }]);
+
+	  return Ball;
+	}(_Entity3.default);
 
 	exports.default = Ball;
 
@@ -20407,44 +20509,91 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 	// The game is composed of entities
 
-	function Entity() {
-	  // A game entity has ...
+	var Entity = function () {
+	  function Entity() {
+	    _classCallCheck(this, Entity);
 
-	  // A position
-	  this.x = 0;
-	  this.y = 0;
+	    // A game entity has ...
 
-	  // Dimensions
-	  this.width = 0;
-	  this.height = 0;
+	    // A position
+	    this.x = 0;
+	    this.y = 0;
 
-	  // A velocity: speed with direction
-	  this.xVelocity = 0;
-	  this.yVelocity = 0;
-	}
+	    // Dimensions
+	    this.width = 0;
+	    this.height = 0;
 
-	// On each update, we apply the velocity to the current position.
-	// This makes the entity move.
-	// Entities are expected to override this method.
-	Entity.prototype.update = function () {
-	  this.x += this.xVelocity;
-	  this.y += this.yVelocity;
-	};
+	    // A velocity: speed with direction
+	    this.xVelocity = 0;
+	    this.yVelocity = 0;
 
-	// The entity knows how to draw itself.
-	// All entities of our game will be white rectangles.
-	Entity.prototype.draw = function (context) {
-	  context.fillStyle = '#fff';
-	  context.fillRect(this.x, this.y, this.width, this.height);
-	};
+	    // A name
+	    this.name = '';
+	  }
 
-	// Basic bounding box collision detection.
-	// Returns `true` if the entity intersect with another one.
-	Entity.prototype.intersect = function (other) {
-	  return this.y + this.height > other.y && this.y < other.y + other.height && this.x + this.width > other.x && this.x < other.x + other.width;
-	};
+	  // On each update, we apply the velocity to the current position.
+	  // This makes the entity move.
+	  // Entities are expected to override this method.
+
+
+	  _createClass(Entity, [{
+	    key: 'update',
+	    value: function update() {
+	      this.x += this.xVelocity;
+	      this.y += this.yVelocity;
+	    }
+
+	    // The entity knows how to draw itself.
+	    // All entities of our game will be white rectangles.
+
+	  }, {
+	    key: 'draw',
+	    value: function draw(context) {
+	      context.fillStyle = '#fff';
+	      context.fillRect(this.x, this.y, this.width, this.height);
+	    }
+
+	    // Basic bounding box collision detection.
+	    // Returns `true` if the entity intersect with another one.
+
+	  }, {
+	    key: 'intersect',
+	    value: function intersect(other) {
+	      return this.y + this.height > other.y && this.y < other.y + other.height && this.x + this.width > other.x && this.x < other.x + other.width;
+	    }
+	  }, {
+	    key: 'setState',
+	    value: function setState(state) {
+	      this.x = state.x;
+	      this.y = state.y;
+	      this.width = state.width;
+	      this.height = state.height;
+	      this.xVelocity = state.xVelocity;
+	      this.yVelocity = state.yVelocity;
+	    }
+	  }, {
+	    key: 'getState',
+	    value: function getState() {
+	      return {
+	        x: this.x,
+	        y: this.y,
+	        width: this.width,
+	        height: this.height,
+	        xVelocity: this.xVelocity,
+	        yVelocity: this.yVelocity
+	      };
+	    }
+	  }]);
+
+	  return Entity;
+	}();
 
 	exports.default = Entity;
 
@@ -20458,34 +20607,61 @@
 	  value: true
 	});
 
-	var _Paddle = __webpack_require__(179);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Paddle2 = _interopRequireDefault(_Paddle);
+	var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+	var _Paddle2 = __webpack_require__(180);
+
+	var _Paddle3 = _interopRequireDefault(_Paddle2);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function Player(_game) {
-	  _Paddle2.default.call(this, _game);
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  this.x = 20;
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-	  this.speed = 15;
-	}
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	Player.prototype = Object.create(_Paddle2.default.prototype);
-	Player.prototype.constructor = Player;
+	var Player = function (_Paddle) {
+	  _inherits(Player, _Paddle);
 
-	Player.prototype.update = function () {
-	  if (this.game.keyPressed.up) {
-	    this.yVelocity = -this.speed;
-	  } else if (this.game.keyPressed.down) {
-	    this.yVelocity = this.speed;
-	  } else {
-	    this.yVelocity = 0;
+	  function Player(_game, _id, _controllable) {
+	    _classCallCheck(this, Player);
+
+	    var _this = _possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this, _game));
+
+	    _this.id = _id;
+	    _this.controllable = _controllable;
+	    switch (_id) {
+	      case 1:
+	        _this.x = 20;
+	        _this.name = 'player1';
+	        break;
+	      case 2:
+	        _this.x = _this.game.width - _this.width - 20;
+	        _this.name = 'player2';
+	        break;
+	      default:
+	    }
+
+	    _this.speed = 15;
+	    return _this;
 	  }
 
-	  _Paddle2.default.prototype.update.apply(this, arguments);
-	};
+	  _createClass(Player, [{
+	    key: 'update',
+	    value: function update() {
+	      if (this.controllable) {
+	        if (this.game.keyPressed.up) this.yVelocity = -this.speed;else if (this.game.keyPressed.down) this.yVelocity = this.speed;else this.yVelocity = 0;
+	      }
+
+	      _get(Player.prototype.__proto__ || Object.getPrototypeOf(Player.prototype), 'update', this).call(this, arguments);
+	    }
+	  }]);
+
+	  return Player;
+	}(_Paddle3.default);
 
 	exports.default = Player;
 
@@ -20499,35 +20675,55 @@
 	  value: true
 	});
 
-	var _Entity = __webpack_require__(177);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Entity2 = _interopRequireDefault(_Entity);
+	var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+	var _Paddle2 = __webpack_require__(180);
+
+	var _Paddle3 = _interopRequireDefault(_Paddle2);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function Paddle(_game) {
-	  _Entity2.default.call(this);
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  this.width = 20;
-	  this.height = 100;
-	  this.game = _game;
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-	  this.y = this.game.height / 2 - this.height / 2;
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	  this.score = 0;
-	}
+	var Bot = function (_Paddle) {
+	  _inherits(Bot, _Paddle);
 
-	Paddle.prototype = Object.create(_Entity2.default.prototype);
-	Paddle.prototype.constructor = Paddle;
+	  function Bot(_game) {
+	    _classCallCheck(this, Bot);
 
-	Paddle.prototype.update = function () {
-	  _Entity2.default.prototype.update.apply(this, arguments);
+	    var _this = _possibleConstructorReturn(this, (Bot.__proto__ || Object.getPrototypeOf(Bot)).call(this, _game));
 
-	  // Keep the paddle within the screen
-	  this.y = Math.min(Math.max(this.y, 0), this.game.height - this.height);
-	};
+	    _this.x = _this.game.width - _this.width - 20;
+	    _this.name = 'bot';
 
-	exports.default = Paddle;
+	    _this.speed = 5;
+	    return _this;
+	  }
+
+	  _createClass(Bot, [{
+	    key: 'update',
+	    value: function update() {
+	      // Follow the ball
+	      if (this.y < this.game.ball.y) {
+	        this.yVelocity = this.speed;
+	      } else {
+	        this.yVelocity = -this.speed;
+	      }
+
+	      _get(Bot.prototype.__proto__ || Object.getPrototypeOf(Bot.prototype), 'update', this).call(this, arguments);
+	    }
+	  }]);
+
+	  return Bot;
+	}(_Paddle3.default);
+
+	exports.default = Bot;
 
 /***/ },
 /* 180 */
@@ -20539,35 +20735,54 @@
 	  value: true
 	});
 
-	var _Paddle = __webpack_require__(179);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Paddle2 = _interopRequireDefault(_Paddle);
+	var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+	var _Entity2 = __webpack_require__(177);
+
+	var _Entity3 = _interopRequireDefault(_Entity2);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function Bot(_game) {
-	  _Paddle2.default.call(this, _game);
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  this.x = this.game.width - this.width - 20;
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-	  this.speed = 5;
-	}
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	Bot.prototype = Object.create(_Paddle2.default.prototype);
-	Bot.prototype.constructor = Bot;
+	var Paddle = function (_Entity) {
+	  _inherits(Paddle, _Entity);
 
-	Bot.prototype.update = function () {
-	  // Follow the ball
-	  if (this.y < this.game.ball.y) {
-	    this.yVelocity = this.speed;
-	  } else {
-	    this.yVelocity = -this.speed;
+	  function Paddle(_game) {
+	    _classCallCheck(this, Paddle);
+
+	    var _this = _possibleConstructorReturn(this, (Paddle.__proto__ || Object.getPrototypeOf(Paddle)).call(this));
+
+	    _this.width = 20;
+	    _this.height = 100;
+	    _this.game = _game;
+
+	    _this.y = _this.game.height / 2 - _this.height / 2;
+
+	    _this.score = 0;
+	    return _this;
 	  }
 
-	  _Paddle2.default.prototype.update.apply(this, arguments);
-	};
+	  _createClass(Paddle, [{
+	    key: 'update',
+	    value: function update() {
+	      _get(Paddle.prototype.__proto__ || Object.getPrototypeOf(Paddle.prototype), 'update', this).call(this, arguments);
 
-	exports.default = Bot;
+	      // Keep the paddle within the screen
+	      this.y = Math.min(Math.max(this.y, 0), this.game.height - this.height);
+	    }
+	  }]);
+
+	  return Paddle;
+	}(_Entity3.default);
+
+	exports.default = Paddle;
 
 /***/ },
 /* 181 */
@@ -26235,6 +26450,46 @@
 
 	exports.default = (0, _createRouterHistory2.default)(_createHashHistory2.default);
 	module.exports = exports['default'];
+
+/***/ },
+/* 247 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var Background = function () {
+	  function Background(_game) {
+	    _classCallCheck(this, Background);
+
+	    this.game = _game;
+	  }
+
+	  _createClass(Background, [{
+	    key: 'draw',
+	    value: function draw(context) {
+	      context.fillStyle = '#000';
+	      context.fillRect(0, 0, this.game.width, this.game.height);
+
+	      // Print scores
+	      context.fillStyle = '#fff';
+	      context.font = '40px monospace';
+	      context.fillText(this.game.player1.score, this.game.width * 3 / 8, 50);
+	      context.fillText(this.game.player2.score, this.game.width * 5 / 8, 50);
+	    }
+	  }]);
+
+	  return Background;
+	}();
+
+	exports.default = Background;
 
 /***/ }
 /******/ ]);

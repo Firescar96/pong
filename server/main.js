@@ -23,30 +23,26 @@ exports = module.exports = function (server) {
           }
 
           if(Object.keys(gameIDs[signal.gameID]).length >= 2) {
-            console.log(gameIDs)
             ws.send(JSON.stringify({
               'flag': 'init',
               'uuid': signal.uuid,
             }))
           }
           break
+        case 'reset':
+          delete gameIDs[signal.gameID][signal.uuid]
+          break
         default:
           for(var uuid in gameIDs[signal.gameID]) {
             if(gameIDs[signal.gameID].hasOwnProperty(uuid)) {
-              gameIDs[signal.gameID][uuid].send(message)
+              let socket = gameIDs[signal.gameID][uuid]
+              if(socket.readyState != socket.OPEN) {
+                delete gameIDs[signal.gameID][uuid]
+              } else socket.send(message)
             }
           }
 
       }
     })
-
-    // This is to prevent the server crashing on lost clients
-    ws.on('error', (err) => {})
   })
-
-  wss.broadcast = function (data) {
-    this.clients.forEach((client, i) => {
-      this.clients[i].send(data)
-    })
-  }
 }

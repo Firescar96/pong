@@ -15,6 +15,9 @@ class Entity {
     // A velocity: speed with direction
     this.xVelocity = 0
     this.yVelocity = 0
+
+    // A name
+    this.name = ''
   }
 
   // On each update, we apply the velocity to the current position.
@@ -39,6 +42,26 @@ class Entity {
     this.y               < other.y + other.height &&
     this.x + this.width  > other.x &&
     this.x               < other.x + other.width
+  }
+
+  setState (state) {
+    this.x = state.x
+    this.y = state.y
+    this.width = state.width
+    this.height = state.height
+    this.xVelocity = state.xVelocity
+    this.yVelocity = state.yVelocity
+  }
+
+  getState () {
+    return {
+      x:         this.x,
+      y:         this.y,
+      width:     this.width,
+      height:    this.height,
+      xVelocity: this.xVelocity,
+      yVelocity: this.yVelocity,
+    }
   }
 }
 

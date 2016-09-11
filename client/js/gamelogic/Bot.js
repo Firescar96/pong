@@ -5,6 +5,7 @@ class Bot extends Paddle {
     super(_game)
 
     this.x = this.game.width - this.width - 20
+    this.name = 'bot'
 
     this.speed = 5
   }
