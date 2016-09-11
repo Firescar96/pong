@@ -5,12 +5,13 @@ import PeerConnection from './PeerConnection.js'
 import Background from './Background.js'
 
 class Game {
-  constructor (_gameID, _canvas) {
+  constructor (_gameID, _canvas, _onPCReadyCallback) {
     var self = this
 
     this.context = _canvas.getContext('2d')
     this.width = _canvas.width
     this.height = _canvas.height
+    this.onPCReadyCallback = _onPCReadyCallback
     this.pc = new PeerConnection(_gameID, this.onPCReady.bind(this), this.onPCMessage.bind(this))
 
     // Keep track of key states
@@ -86,6 +87,7 @@ class Game {
       this.player1,
       this.player2,
     ]
+    this.onPCReadyCallback()
   }
 
   onPCMessage (message) {

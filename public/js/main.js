@@ -19900,13 +19900,13 @@
 	      )
 	    );
 	  },
-	  componentDidMount: function componentDidMount() {
-	    this.setState({ gameID: this.props.params.gameID });
+	  stopWaiting: function stopWaiting() {
+	    this.setState({ waiting: false });
 	  },
-	  componentDidUpdate: function componentDidUpdate() {
+	  componentDidMount: function componentDidMount() {
 	    // Initialize and start the game
 
-	    var game = new _Game2.default(this.props.params.gameID, $('canvas')[0]);
+	    var game = new _Game2.default(this.props.params.gameID, $('canvas')[0], this.stopWaiting);
 
 	    game.start();
 	    $('canvas')[0].focus();
@@ -20006,7 +20006,7 @@
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var Game = function () {
-	  function Game(_gameID, _canvas) {
+	  function Game(_gameID, _canvas, _onPCReadyCallback) {
 	    _classCallCheck(this, Game);
 
 	    var self = this;
@@ -20014,6 +20014,7 @@
 	    this.context = _canvas.getContext('2d');
 	    this.width = _canvas.width;
 	    this.height = _canvas.height;
+	    this.onPCReadyCallback = _onPCReadyCallback;
 	    this.pc = new _PeerConnection2.default(_gameID, this.onPCReady.bind(this), this.onPCMessage.bind(this));
 
 	    // Keep track of key states
@@ -20083,6 +20084,7 @@
 	        default:
 	      }
 	      this.entities = [this.background, this.ball, this.player1, this.player2];
+	      this.onPCReadyCallback();
 	    }
 	  }, {
 	    key: 'onPCMessage',

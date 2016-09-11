@@ -1,5 +1,5 @@
 import React from 'react'
-import classnames from 'classnames';
+import classnames from 'classnames'
 
 import Game from '../gamelogic/Game.js'
 
@@ -14,7 +14,7 @@ let navbar = (
 var Pong = React.createClass({
   getInitialState () {
     return {
-      waiting: true
+      waiting: true,
     }
   },
   render () {
@@ -30,17 +30,17 @@ var Pong = React.createClass({
       </div>
     )
   },
-  componentDidMount () {
-    this.setState({gameID: this.props.params.gameID})
+  stopWaiting () {
+    this.setState({waiting: false})
   },
-  componentDidUpdate () {
+  componentDidMount () {
     // Initialize and start the game
 
-    var game = new Game(this.props.params.gameID, $('canvas')[0])
+    var game = new Game(this.props.params.gameID, $('canvas')[0], this.stopWaiting)
 
     game.start()
     $('canvas')[0].focus()
-  }
+  },
 })
 
 export default Pong
