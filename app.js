@@ -1,46 +1,42 @@
 const express = require('express')
 const path = require('path')
 const fs = require('fs')
-const http = require('http')
 const https = require('https')
+const gzipStatic = require('connect-gzip-static')
 
 var app = express()
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
-app.engine('.html', require('ejs').renderFile)
 
-app.use(express.static(path.join(__dirname, 'public')))
+const staticPath = path.join(__dirname, './dist')
+app.use('/', gzipStatic(staticPath))
+app.use('/*', gzipStatic(staticPath))
 
-/**
-* Get port from environment and store in Express.
-*/
-app.set('port', process.env.PORT || '3443')
-
-require('./routes')(app)
+app.use(function (req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+  next()
+})
 
 // Yes, SSL is required
 var credentials = {
-  key:        fs.readFileSync('server.key'),
-  cert:       fs.readFileSync('server.crt'),
-  passphrase: 'ChickenNumber1',
+  key:  fs.readFileSync(path.resolve(__dirname, 'privkey.pem')),
+  cert: fs.readFileSync(path.resolve(__dirname, 'cert.pem')),
 }
 
 var httpServer = express()
 httpServer.get('/*', function (req, res) {
-  res.redirect('https://' + req.hostname + ':' + app.get('port') + req.url)
+  res.redirect('https://' + req.hostname + ':7663' + req.url)
 })
-httpServer.listen(3000)
+httpServer.listen(7664)
 
 var httpsServer = https.createServer(credentials, app)
 
 /**
 * Listen on provided port, on all network interfaces.
 */
-httpsServer.listen(app.get('port'), function () {
-  console.log('Express running. Visit https://localhost:' + app.get('port') +
-  ' in Firefox/Chrome (note the HTTPS; there is no HTTP -> HTTPS redirect!)')
+httpsServer.listen('7663', '0.0.0.0', function () {
+  console.log('Express running. Visit https://::7664')
 })
 
 require('./server/main.js')(httpsServer)

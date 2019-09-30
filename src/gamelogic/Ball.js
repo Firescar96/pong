@@ -15,9 +15,9 @@ class Ball extends Entity {
     // Load sound
     this.blip = new Audio()
     if(this.blip.canPlayType('audio/mpeg')) {
-      this.blip.src = 'blip.mp3'
+      this.blip.src = 'static/blip.mp3'
     } else {
-      this.blip.src = 'blip.ogg'
+      this.blip.src = 'static/blip.ogg'
     }
   }
 
