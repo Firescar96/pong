@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="home-page">
     <nav>
     <h1>Just some Pong clone</h1>
     </nav>
@@ -14,11 +14,11 @@
 </template>
 <script>
 
-import Component from 'vue-class-component';
+import { Options, Vue } from 'vue-class-component';
 
 export default
-@Component()
-class Home {
+@Options()
+class Home extends Vue{
   data () {
     return {gameID: ''}
   }
@@ -28,3 +28,8 @@ class Home {
   }
 }
 </script>
+<style lang="scss">
+#home-page {
+  text-align: center;
+}
+</style>

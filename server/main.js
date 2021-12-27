@@ -6,13 +6,14 @@ const WebSocketServer = require('ws').Server
 exports = module.exports = function (server) {
   // Create a server for handling websocket calls
   const wss = new WebSocketServer({server: server})
+  
   // TODO: delete old ids after clients have been matched
   var gameIDs = {}
 
   wss.on('connection', function (ws) {
-    ws.on('message', function (message) {
+    ws.on('message', function (_message) {
+      const message =  _message.toString();
       // Broadcast any received message to all clients
-      console.log('received: %s', message)
       var signal = JSON.parse(message)
       switch (signal.flag) {
         case 'init':

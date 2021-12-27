@@ -14,11 +14,8 @@ class Ball extends Entity {
 
     // Load sound
     this.blip = new Audio()
-    if(this.blip.canPlayType('audio/mpeg')) {
-      this.blip.src = 'static/blip.mp3'
-    } else {
-      this.blip.src = 'static/blip.ogg'
-    }
+    this.blip.src = './blip.mp3'
+    
   }
 
   // Reset the ball's position
@@ -65,13 +62,13 @@ class Ball extends Entity {
       // Transfer some of the paddle vertical velocity to the ball
       this.yVelocity += hitter.yVelocity / 4
 
-      this.blip.play()
+      this.blip.play().catch(() => {});
     }
 
     // Rebound if it hits top or bottom
     if(this.y < 0 || this.y + this.height > this.game.height) {
       this.yVelocity *= -1 // rebound, switch direction
-      this.blip.play()
+      this.blip.play().catch(() => {});
     }
 
     // Off screen on left. Bot wins.

@@ -1,5 +1,5 @@
 <template>
-<div>
+<div id="pong-page">
   <nav>
     <h1>Just some Pong clone</h1>
   </nav>
@@ -19,12 +19,12 @@
 
 <script>
 
-import Component from 'vue-class-component';
+import { Options, Vue } from 'vue-class-component';
 import Game from '../gamelogic/Game.js'
 
 export default
-@Component()
-class Pong {
+@Options()
+class Pong extends Vue {
   data () {
     return {
       waiting: true,
@@ -34,7 +34,6 @@ class Pong {
     this.waiting=false;
   }
   onKeyPress(e) {
-    console.log('adsa')
     if(!this.game)return;
     this.game.onKeyPress(e);
   }
@@ -49,8 +48,12 @@ class Pong {
 }
 </script>
 
-<style>
-.hidden {
-  display: none;
+<style lang="scss">
+#pong-page {
+  text-align: center;
+
+  .hidden {
+    display: none;
+  }
 }
 </style>

@@ -4,7 +4,8 @@ class PeerConnection {
   constructor (_gameID, _onReadyCallback, _onRemoteMessageCallback) {
     this.uuid = this.generateUUID()
     this.ready = false
-    this.serverConnection = new WebSocket('wss://' + window.location.hostname + ':7663')
+    const wsProtocol = window.location.protocol.replace('http', 'ws')
+    this.serverConnection = new WebSocket(wsProtocol + '//' + window.location.hostname + ':3443')
     this.serverConnection.onopen = () => {
       this.serverConnection.send(JSON.stringify({
         'flag':   'init',
@@ -33,7 +34,7 @@ class PeerConnection {
 
   createOffer () {
     this.peerConnection.createOffer()
-      .then(this.createdDescription.bind(this)).catch(this.errorHandler)
+    .then(this.createdDescription.bind(this)).catch(this.errorHandler)
   }
 
   sendMessageToPeer (_message) {
@@ -52,19 +53,19 @@ class PeerConnection {
         // Ignore messages from ourself
         if(signal.uuid.localeCompare(this.uuid) === 0) return
         this.peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp))
-          .then(() => {
+        .then(() => {
           // Only create answers in response to offers
-            if(signal.sdp.type.localeCompare('offer') === 0) {
-              this.peerConnection.createAnswer().then(this.createdDescription.bind(this))
-                .catch(this.errorHandler)
-            }
-          }).catch(this.errorHandler)
+          if(signal.sdp.type.localeCompare('offer') === 0) {
+            this.peerConnection.createAnswer().then(this.createdDescription.bind(this))
+            .catch(this.errorHandler)
+          }
+        }).catch(this.errorHandler)
         break
       case 'ice':
         // Ignore messages from ourself
         if(signal.uuid.localeCompare(this.uuid) === 0) return
         this.peerConnection.addIceCandidate(new RTCIceCandidate(signal.ice))
-          .catch(this.errorHandler)
+        .catch(this.errorHandler)
         break
       default:
         break

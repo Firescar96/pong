@@ -8,6 +8,7 @@ class Game {
   constructor (_gameID, _canvas, _onPCReadyCallback) {
     var self = this
 
+    window.hello = _canvas;
     this.context = _canvas.getContext('2d')
     this.width = _canvas.width
     this.height = _canvas.height
@@ -19,6 +20,20 @@ class Game {
     //   game.keyPressed.up === true  // while UP key is pressed)
     //   game.keyPressed.up === false // when UP key is released)
     this.keyPressed = {}
+
+    const keyPressEvent = (e) => {
+      // Convert key code to key name
+      var keyName = Game.keys[e.which]
+
+      if(keyName) {
+        // eg.: `self.keyPressed.up = true` on keydown
+        // Will be set to `false` on keyup
+        self.keyPressed[keyName] = e.type === 'keydown'
+        e.preventDefault()
+      }
+    }
+    _canvas.onkeydown = keyPressEvent
+    _canvas.onkeyup = keyPressEvent
 
     // Load the game entities
     this.background = new Background(this)
@@ -33,18 +48,6 @@ class Game {
     ]
   }
 
-  onKeyPress (e) {
-    // Convert key code to key name
-    var keyName = Game.keys[e.which]
-
-    if(keyName) {
-      // eg.: `self.keyPressed.up = true` on keydown
-      // Will be set to `false` on keyup
-      this.keyPressed[keyName] = e.type === 'keydown'
-      e.preventDefault()
-    }
-  }
-
   update () {
     this.entities.forEach((entity) => {
       if(entity.update) entity.update()
@@ -52,10 +55,10 @@ class Game {
 
     let state = {}
     this.entities
-      .filter((entity) => entity.getState !== undefined)
-      .forEach((entity) => {
-        state[entity.name] = entity.getState()
-      })
+    .filter((entity) => entity.getState !== undefined)
+    .forEach((entity) => {
+      state[entity.name] = entity.getState()
+    })
     if(this.pc.ready) this.pc.sendMessageToPeer(JSON.stringify(state))
   }
 

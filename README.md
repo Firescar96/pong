@@ -1,20 +1,24 @@
-# Pong: an HTML5 Canvas 2D Game
+# pong
 
-### Setting up your dev environment
+## Project setup
+```
+yarn install
+```
 
-    $ webpack
-    $ node app.js
+### Compiles and hot-reloads for development
+```
+yarn serve
+```
 
-Then browse to http://localhost:3000.
+### Compiles and minifies for production
+```
+yarn build
+```
 
-Reload the page each time you change something
+### Lints and fixes files
+```
+yarn lint
+```
 
-### License
-
-Copyright 2014 Coded Inc.  
-marc@codedinc.com
-
-Copyright 2016 Firescar96   
-nchinda2@gmail.com
-
-You are free to modify and distribute this however you want. Except for teaching purposes.
+### Customize configuration
+See [Configuration Reference](https://cli.vuejs.org/config/).
