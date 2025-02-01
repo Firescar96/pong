@@ -19,24 +19,24 @@
 
 <script>
 
-import { Options, Vue } from 'vue-class-component';
 import Game from '../gamelogic/Game.js'
 
-export default
-@Options()
-class Pong extends Vue {
+export default{
+  name: 'Pong',
   data () {
     return {
       waiting: true,
     }
-  }
-  stopWaiting () {
-    this.waiting=false;
-  }
-  onKeyPress(e) {
-    if(!this.game)return;
-    this.game.onKeyPress(e);
-  }
+  },
+  methods: {
+    stopWaiting () {
+      this.waiting=false;
+    },
+    // onKeyPress(e) {
+    //   if(!this.game)return;
+    //   this.game.onKeyPress(e);
+    // }
+  },
   mounted() {
     console.log('mounted', this, this.$route.params)
     // Initialize and start the game

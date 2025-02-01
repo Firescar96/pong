@@ -7,6 +7,7 @@ import router from './router'
 Vue.use(VueRouter)
 Vue.config.productionTip = false
 
+console.log('router', router)
 new Vue({
   render: h => h(App),
   router,

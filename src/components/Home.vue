@@ -14,17 +14,15 @@
 </template>
 <script>
 
-import { Options, Vue } from 'vue-class-component';
-
-export default
-@Options()
-class Home extends Vue{
+export default {
   data () {
     return {gameID: ''}
-  }
-  
-  playPong () {
-    this.$router.push(this.gameID)
+  },
+  name: 'Home',
+  methods: {
+    playPong () {
+      this.$router.push(this.gameID)
+    }
   }
 }
 </script>
